@@ -12,8 +12,6 @@ const bodyparser = require('koa-bodyparser');
 const koaStatic = require("koa-static");
 
 const index = require('./routes/index');
-const users = require('./routes/users/');
-const caipu = require('./routes/caipu/');
 
 const checkrefer = require('./middlewares/checkrefer');
 
@@ -52,8 +50,6 @@ app.use(checkrefer());
 
 //web 路由
 router.use('/', index.routes(), index.allowedMethods());
-router.use('/users', users.routes(), users.allowedMethods());
-router.use('/caipu', caipu.routes(), caipu.allowedMethods());
 
 app.use(router.routes(), router.allowedMethods());
 // response

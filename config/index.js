@@ -2,8 +2,8 @@
 
 //全局参数
 let g = {
-    domain: 'www.chibaiwei.com',
-    cdn: 'chi.jsoncdn.com',
+    domain: 'www.demo.com',
+    cdn: 'cdn.demo.com',
 }
 
 let development = {
