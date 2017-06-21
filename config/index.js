@@ -5,6 +5,14 @@ let g = {
     domain: 'www.demo.com',
     cdn: 'cdn.demo.com',
 }
+const db = {
+    host: '127.0.0.1',
+    port: '3306',
+    user: 'root',
+    connectionLimit: 2,
+    password: 'amwewihcv',
+    database: 'test'
+}
 
 let development = {
     env: 'development', //环境名称
@@ -24,7 +32,7 @@ let production = {
 
 let env = process.env.NODE_ENV || 'development';
 
-module.exports = Object.assign({}, g, {
+module.exports = Object.assign({}, { g }, { db }, {
     development,
     production
-}[process.env.NODE_ENV.trim() || 'development'])
+}[process.env.NODE_ENV || 'development'])

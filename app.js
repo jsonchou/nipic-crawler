@@ -5,6 +5,7 @@ const app = new Koa();
 
 const router = require('koa-router')();
 const views = require('koa-views');
+const nunjucks = require('nunjucks');
 const json = require('koa-json');
 const onerror = require('koa-onerror');
 
@@ -23,11 +24,12 @@ app.use(koaStatic(__dirname + "/assets", {
 }));
 app.use(koaStatic(__dirname + "/html"));
 
-app.use(views(__dirname + '/views', {
-    extension: 'ejs'
-}));
+nunjucks.configure('views', { autoescape: true });
 
-//app.use(koaStatic(__dirname + "/views/caipu"));
+app.use(views(__dirname + '/views', {
+    map: { html: 'nunjucks' },
+    extension: 'html'
+}));
 
 // logger
 app.use(async function(ctx, next) {
@@ -43,6 +45,12 @@ app.use(async function(ctx, next) {
         ms = new Date() - start;
         logUtil.error(ctx, err, ms); //错误日志，永远记录
     }
+});
+
+//注入全局变量
+app.use(async(ctx, next) => {
+    ctx.state = Object.assign(ctx.state, { g: config.g });
+    await next();
 });
 
 //注入中间件

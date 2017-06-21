@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <title>
+        {{page.title}}
+    </title>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit">
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.1.0.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>分类列表 <button type="button" class="btn btn-success" id="j_crawlerAll">一键获取</button> </h2>
+        <div class="row">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>分类</th>
+                        <th>图片</th>
+                        <th>添加时间</th>
+                        <th>修改时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {%for item in page.rows%}
+                    <tr>
+                        <th scope="row">{{loop.index}}</th>
+                        <td>{{item.category}}</td>
+                        <td><img src="{{item.pic}}" class="img-circle"></td>
+                        <td>{{item.post_date}}</td>
+                        <td>{{item.update_date}}</td>
+                        <td><button type="button" class="btn btn-success">获取图片</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        $('#j_crawlerAll').on('click', function() {
+            var o = $(this);
+            $.ajax({
+                type: 'GET',
+                dataType: 'json',
+                url: '/crawler',
+                data: {},
+            }).done(res => {
+                console.log(res);
+            })
+        })
+    </script>
+
+</body>
+
+</html>
