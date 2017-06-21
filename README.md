@@ -17,4 +17,4 @@ nipic分类图片采集、裁剪、去水印
 ## 技术实施方案
 * sqlite
 * nipic.com
-* koa2DB
+* koa2
