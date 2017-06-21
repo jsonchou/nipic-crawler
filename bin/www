@@ -4,6 +4,7 @@
 
 global.config = require('../config')
 global.logUtil = require('../utils/log');
+global.Promise = require("bluebird");
 
 var app = require('../app');
 var debug = require('debug')('demo1:server');

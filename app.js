@@ -13,6 +13,7 @@ const bodyparser = require('koa-bodyparser');
 const koaStatic = require("koa-static");
 
 const index = require('./routes/index');
+const api = require('./routes/api/index');
 
 const checkrefer = require('./middlewares/checkrefer');
 
@@ -58,6 +59,7 @@ app.use(checkrefer());
 
 //web 路由
 router.use('/', index.routes(), index.allowedMethods());
+router.use('/api', api.routes(), api.allowedMethods());
 
 app.use(router.routes(), router.allowedMethods());
 // response
