@@ -1,0 +1,23 @@
+#folder ignore
+.vs
+.vscode
+.log
+.logs
+.idea
+.temp
+.cache
+node_modules
+aspnet_client
+test
+
+#file ignore
+.DS_Store
+.ffs_db
+*.cache
+*.log
+*.bak
+*.sln
+*.cmd
+*.thumb
+*.tmp
+
