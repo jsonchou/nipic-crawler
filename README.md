@@ -15,6 +15,6 @@ nipic分类图片采集、裁剪、去水印
 * 数据采集图片、裁剪、去水印
 
 ## 技术实施方案
-* sqlite
-* nipic.com
+* mariadb
+* nipic.com（昵图网）
 * koa2
