@@ -40,8 +40,8 @@ const router = require('koa-router')();
 //ajax api
 router.get('/:table/:id', async(ctx, next) => {
 
-    let table = ctx.params.table;
     let id = ctx.params.id;
+    let table = ctx.params.table;
 
     let state = {
         page: {
@@ -57,7 +57,8 @@ router.get('/:table/:id', async(ctx, next) => {
     await db.queryAsync("SELECT id,cate,cate_py,pic,post_date,update_date from ?? where id=?", [table, id]).then(res => {
         if (res && res.length) {
             return Promise.map(res, (item, idx) => {
-                let url = crawlerConfig.tmpl.replace("{{cate}}", encodeURIComponent(item.cate));
+                let url = crawlerConfig.tmpl.replace("{{cate}}", item.cate_py);
+                let filename = crawlerConfig.dir + "//" + "test-" + Date.now() + '.jpg';
                 return new Promise((resolve, reject) => {
                     request({
                         url,
@@ -73,6 +74,13 @@ router.get('/:table/:id', async(ctx, next) => {
                         let $ = cheerio.load(body);
                         let pageLink = $('.search-works-container').children('.search-works-item').eq(0).find('a').attr('href');
 
+                        //console.log(img);
+
+                        //console.log('statusCode:', response && response.statusCode); 
+                        //console.log('body:', body); 
+
+                        //console.log(pageLink)
+
                         let obj = {
                             id: item.id,
                             cate: item.cate,
@@ -82,7 +90,6 @@ router.get('/:table/:id', async(ctx, next) => {
                             update_date: item.update_date,
                             pageLink
                         };
-
                         linkTarget.push(obj);
 
                         resolve(obj);
@@ -99,36 +106,18 @@ router.get('/:table/:id', async(ctx, next) => {
         }
     }).catch(err => {
         console.log(err);
+        reject(err);
     })
 
-    //获取图片所在页面地址
-    async function getUrl(tar) {
-        return new Promise((resolve, reject) => {
-            request({
-                uri: tar.pageLink,
-                method: 'GET',
-                gzip: true
-            }, (error, response, body) => {
-                if (error) {
-                    return reject(error);
-                }
-                let $ = cheerio.load(body);
-                let imgSrc = $('#J_worksImg').attr('src');
-                tar.imgSrc = imgSrc;
-                resolve(tar);
-            })
-        })
-    }
 
     //获取图片
-    async function getPic(tar) {
+    function getPic(src, tar) {
         return new Promise((resolve, reject) => {
             let filename = crawlerConfig.dir + "//" + tar.cate_py + '.jpg';
             request.get({
-                "url": tar.imgSrc,
+                "url": src,
             }).pipe(fs.createWriteStream(filename)).on('finish', () => {
                 console.log('finish');
-                tar.pic = tar.cate_py + '.jpg';
                 resolve(tar)
             }).on('error', (error) => {
                 console.log('error');
@@ -137,38 +126,46 @@ router.get('/:table/:id', async(ctx, next) => {
         })
     }
 
-    //更新pic字段
-    async function updPic(tar) {
+    //获取图片所在页面地址
+    async function getUrl(tar) {
         return new Promise((resolve, reject) => {
-            db.queryAsync('UPDATE ?? SET pic = ?, update_date=? WHERE id = ?', [table, tar.pic, moment().format('YYYY-MM-DD HH:mm:ss'), tar.id]).then(res => {
-                if (res && res.affectedRows) {
-                    resolve(tar);
-                } else {
-                    reject(null);
+            request({
+                uri: tar.pageLink,
+                method: 'GET',
+                gzip: true
+            }, async function(error, response, body) {
+                if (error) {
+                    return reject(error);
                 }
-            }).catch(err => {
-                console.log(err);
-                reject(err);
+                let $ = cheerio.load(body);
+                let imgSrc = $('#J_worksImg').attr('src');
+                let tag = await getPic(imgSrc, tar);
+                console.log(tag);
+                resolve(tar);
             })
         })
     }
 
-    //处理图片尺寸（压缩、裁剪）
-    async function fixPic(tar) {
-        return new Promise((resolve, reject) => {
-            let pic = tar.pic;
-            resolve(tar);
-        })
-    }
+
+    // //更新pic字段
+    // async function updPic(tar) {
+    //     return new Promise(async(resolve, reject) => {
+    //         await db.queryAsync('UPDATE ?? SET pic = ? WHERE id = ?', [table, tar.pic, tar.id]).then(res => {
+    //             if (res && results.affectedRows) {
+    //                 resolve(tar);
+    //             } else {
+    //                 reject(null);
+    //             }
+    //         }).catch(err => {
+    //             console.log(err);
+    //             reject(err);
+    //         })
+    //     })
+    // }
 
     for (let i = 0; i < linkTarget.length; i++) {
         console.log('a' + i);
-        let item = linkTarget[i];
-        let step1 = await getUrl(item);
-        let step2 = await getPic(step1);
-        let step3 = await updPic(step2);
-        let step4 = await fixPic(step3);
-        console.log('step4', step4);
+        let tag = await getUrl(linkTarget[i]);
         console.log('b' + i);
     }
 
