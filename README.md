@@ -18,3 +18,4 @@ nipic分类图片采集、裁剪、去水印
 * mariadb
 * nipic.com（昵图网）
 * koa2
+* async/await + bluebird
