@@ -20,10 +20,10 @@ const checkrefer = require('./middlewares/checkrefer');
 // middlewares
 app.use(bodyparser());
 app.use(json());
-app.use(koaStatic(__dirname + "/assets", {
-    gzip: true
-}));
+
+app.use(koaStatic(__dirname + "/assets", { gzip: true }));
 app.use(koaStatic(__dirname + "/html"));
+app.use(koaStatic(__dirname + "/test"));
 
 nunjucks.configure('views', { autoescape: true });
 

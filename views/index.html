@@ -24,6 +24,7 @@
                     <tr>
                         <th>#</th>
                         <th>分类</th>
+                        <th>分类英文</th>
                         <th>图片</th>
                         <th>添加时间</th>
                         <th>修改时间</th>
@@ -34,8 +35,9 @@
                     {%for item in page.rows%}
                     <tr>
                         <th scope="row">{{loop.index}}</th>
-                        <td>{{item.category}}</td>
-                        <td><img src="{{item.pic}}" class="img-circle"></td>
+                        <td>{{item.cate}}</td>
+                        <td>{{item.cate_py}}</td>
+                        <td><img src="/test/{{item.pic}}" class="img-circle"></td>
                         <td>{{item.post_date}}</td>
                         <td>{{item.update_date}}</td>
                         <td><button type="button" class="btn btn-success">获取图片</button></td>

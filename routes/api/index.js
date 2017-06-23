@@ -11,6 +11,10 @@ const http = require("http");
 
 const cheerio = require("cheerio");
 
+const imagemin = require('imagemin');
+const imageminGuetzli = require('imagemin-guetzli');
+const gm = require('gm').subClass({ imageMagick: true });
+
 const moment = require('moment');
 const mysql = require('mysql');
 Promise.promisifyAll(mysql);
@@ -156,8 +160,21 @@ router.get('/:table/:id', async(ctx, next) => {
     //处理图片尺寸（压缩、裁剪）
     async function fixPic(tar) {
         return new Promise((resolve, reject) => {
-            let pic = tar.pic;
-            resolve(tar);
+            let pic = path.join(crawlerConfig.dir, tar.pic);
+            //console.log('tar', tar);
+            //console.log('fixPic', pic);
+
+            gm(pic).resize(400, 400)
+                .noProfile()
+                //.autoOrient()
+                .write(path.join(crawlerConfig.dir, 'hehe-' + tar.pic), (err) => {
+                    if (err) {
+                        console.log(err);
+                        return reject(err)
+                    }
+                    console.log('gm done');
+                    resolve(tar);
+                })
         })
     }
 
@@ -168,7 +185,8 @@ router.get('/:table/:id', async(ctx, next) => {
         let step2 = await getPic(step1);
         let step3 = await updPic(step2);
         let step4 = await fixPic(step3);
-        console.log('step4', step4);
+        state.page.data.push(step4);
+        //console.log('step4', step4);
         console.log('b' + i);
     }
 

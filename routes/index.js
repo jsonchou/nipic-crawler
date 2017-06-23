@@ -22,7 +22,7 @@ router.get('/', async(ctx, next) => {
     };
 
     //get all table
-    await db.queryAsync("SELECT id,category,pic,post_date,update_date from category").then(res => {
+    await db.queryAsync("SELECT id,cate,cate_py,pic,post_date,update_date from category").then(res => {
         ctx.state = Object.assign(ctx.state, state);
         res = res.map(c => {
             c.post_date = moment(c.post_date).format("YYYY-MM-DD HH:mm:ss");
