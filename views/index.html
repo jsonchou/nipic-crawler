@@ -2,22 +2,27 @@
 <html lang="zh-CN">
 
 <head>
-    <title>
-        {{page.title}}
-    </title>
+    <title>分类列表</title>
     <meta charset="utf-8">
     <meta name="renderer" content="webkit">
     <meta content="IE=edge" http-equiv="X-UA-Compatible">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.1.0.js"></script>
+    <script src="//static.zhongan.com/website/assets/m/v3/scripts/core.js"></script>
     <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="http://vuejs.org/js/vue.min.js"></script>
+    <style>
+        img {
+            width: 50px;
+            height: 50px;
+        }
+    </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <h2>分类列表 <button type="button" class="btn btn-success" id="j_crawlerAll">一键获取</button> </h2>
+    <div class="container" id="app">
+        <h2>分类列表 <button type="button" class="btn btn-success" @click="getPicAll">一键获取</button> </h2>
         <div class="row">
             <table class="table table-bordered">
                 <thead>
@@ -32,33 +37,88 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {%for item in page.rows%}
-                    <tr>
-                        <th scope="row">{{loop.index}}</th>
-                        <td>{{item.cate}}</td>
-                        <td>{{item.cate_py}}</td>
-                        <td><img src="/test/{{item.pic}}" class="img-circle"></td>
-                        <td>{{item.post_date}}</td>
-                        <td>{{item.update_date}}</td>
-                        <td><button type="button" class="btn btn-success">获取图片</button></td>
+                    <tr v-for="(item,index) in cateList">
+                        <td v-html="index"></td>
+                        <td v-html="item.cate"></td>
+                        <td v-html="item.cate_py"></td>
+                        <td><img :src="'//{{g.cdn}}/cate/'+item.pic+'?='+Date.now()" class="img-circle"></td>
+                        <td v-html="item.post_date"></td>
+                        <td v-html="item.update_date"></td>
+                        <td><button :data-id="item.id" type="button" @click="getPic" class="btn btn-success">获取图片</button></td>
                     </tr>
-                    {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        $('#j_crawlerAll').on('click', function() {
-            var o = $(this);
-            $.ajax({
-                type: 'GET',
-                dataType: 'json',
-                url: '/crawler',
-                data: {},
-            }).done(res => {
-                console.log(res);
-            })
+        var app = new Vue({
+            el: '#app',
+            data: {
+                cateList: []
+            },
+            methods: {
+                getCateList() {
+                    let me = this;
+                    $.ajax({
+                        timeout:0,
+                        type: 'GET',
+                        dataType: 'json',
+                        url: '/api/category'
+                    }).done(res => {
+                        if (res) {
+                            if (res.code == 200) {
+                                me.cateList = res.data;
+                            }
+                        }
+                    })
+                },
+                getPic(e) {
+                    let me = this;
+                    let id = e.target.dataset.id;
+                    $.ajax({
+                        timeout:0,
+                        type: 'GET',
+                        dataType: 'json',
+                        data: {
+                            id
+                        },
+                        url: '/api/cut/category/'
+                    }).done(res => {
+                        if (res) {
+                            if (res.code == 200) {
+                                me.cateList = me.cateList.map(c => {
+                                    if (c.id == id) {
+                                        console.log(res);
+                                        c = res.data[0];
+                                    }
+                                    return c;
+                                })
+                            }
+                        }
+                    })
+                },
+                getPicAll(e) {
+                    let me = this;
+                    $.ajax({
+                        timeout:0,
+                        type: 'GET',
+                        dataType: 'json',
+                        url: '/api/cut/category/'
+                    }).done(res => {
+                        if (res) {
+                            if (res.code == 200) {
+                                console.log(res);
+                                me.cateList = res.data;
+                            }
+                        }
+                    })
+                },
+            },
+            mounted() {
+                let me = this;
+                me.getCateList();
+            }
         })
     </script>
 

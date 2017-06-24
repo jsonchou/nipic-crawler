@@ -1,10 +1,12 @@
 'use strict';
 
 //全局参数
-let g = {
-    domain: 'www.demo.com',
-    cdn: 'cdn.demo.com',
+const g = {
+    domain: 'www.chibaiwei.com',
+    cdn: 'chi.jsoncdn.com',
+    r: 'r.jsoncdn.com/chi',
 }
+
 const db = {
     host: '127.0.0.1',
     port: '3306',

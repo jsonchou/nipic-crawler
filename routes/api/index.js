@@ -11,9 +11,7 @@ const http = require("http");
 
 const cheerio = require("cheerio");
 
-const imagemin = require('imagemin');
-const imageminGuetzli = require('imagemin-guetzli');
-const gm = require('gm').subClass({ imageMagick: true });
+//const sharp = require("sharp");
 
 const moment = require('moment');
 const mysql = require('mysql');
@@ -25,16 +23,16 @@ const db = mysql.createConnection(config.db);
 
 const crawlerConfig = {
     tmpl: `http://soso.nipic.com/?q={{cate}}&k=2&f=JPG&g=1&y=100&w=0&h=0&page=1`,
-    dir: "D://Projects//nipic-crawler//test",
-    size: { width: 650, height: 650 },
+    dir: "D://Projects//www.jsoncdn.com//cdn//chi//cate",
+    size: { width: 400, height: 400 },
     headers: {
         "Referer": "http://www.nipic.com/index.html",
         //"Accept-Encoding": "gzip, deflate",
-        "Accept-Language": "en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4",
-        "Cache-Control": "max-age=0",
-        "Connection": "keep-alive",
-        "Host": "soso.nipic.com",
-        "Upgrade-Insecure-Requests": "1",
+        //"Accept-Language": "en-US,en;q=0.8,zh-CN;q=0.6,zh;q=0.4",
+        //"Cache-Control": "max-age=0",
+        //"Connection": "keep-alive",
+        //"Host": "soso.nipic.com",
+        //"Upgrade-Insecure-Requests": "1",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3080.5 Safari/537.36"
     }
 }
@@ -42,80 +40,113 @@ const crawlerConfig = {
 const router = require('koa-router')();
 
 //ajax api
-router.get('/:table/:id', async(ctx, next) => {
+router.get('/:table', async(ctx, next) => {
 
     let table = ctx.params.table;
-    let id = ctx.params.id;
 
-    let state = {
-        page: {
-            code: 200,
-            message: 'success',
-            data: []
-        }
-    };
+    let pageData = {
+        code: 200,
+        message: 'success',
+        data: []
+    }
 
-    let linkTarget = [];
+    async function getAllTable() {
+        return new Promise((resolve, reject) => {
+            db.query("SELECT id,cate,cate_py,pic,post_date,update_date from ??", [table], (error, results, fields) => {
+                if (error) {
+                    return reject(error);
+                }
+                results = results.map(c => {
+                    c.post_date = moment(c.post_date).format("YYYY-MM-DD HH:mm:ss");
+                    c.update_date = moment(c.update_date).format("YYYY-MM-DD HH:mm:ss");
+                    return c;
+                })
+                resolve(results);
+            });
+        })
+    }
 
-    //获取目标网址
-    await db.queryAsync("SELECT id,cate,cate_py,pic,post_date,update_date from ?? where id=?", [table, id]).then(res => {
-        if (res && res.length) {
-            return Promise.map(res, (item, idx) => {
-                let url = crawlerConfig.tmpl.replace("{{cate}}", encodeURIComponent(item.cate));
-                return new Promise((resolve, reject) => {
-                    request({
-                        url,
-                        //encoding: null,
-                        method: 'GET',
-                        headers: crawlerConfig.headers
-                    }, (error, response, body) => {
-                        if (error) {
-                            console.log('error:', error);
-                            return reject(error); //skip from error
-                        }
+    //get all table
+    pageData.data = await getAllTable();
+    ctx.type = 'application/json; charset=utf-8';
+    ctx.body = pageData;
 
-                        let $ = cheerio.load(body);
-                        let pageLink = $('.search-works-container').children('.search-works-item').eq(0).find('a').attr('href');
+})
 
-                        let obj = {
-                            id: item.id,
-                            cate: item.cate,
-                            cate_py: item.cate_py,
-                            pic: item.pic,
-                            post_date: item.idpost_date,
-                            update_date: item.update_date,
-                            pageLink
-                        };
+//ajax cut api
+router.get('/cut/:table', async(ctx, next) => {
 
-                        linkTarget.push(obj);
+    let table = ctx.params.table;
+    let id = ctx.query.id;
 
-                        resolve(obj);
+    let pageData = {
+        code: 200,
+        message: 'success',
+        data: []
+    }
 
-                    });
-                });
-            }, {
-                concurrency: 2
-            }).then((res) => {
-                console.log('target url done');
-            }).catch(err => {
-                console.error('target url fail: ' + err);
-            })
-        }
-    }).catch(err => {
-        console.log(err);
-    })
+    //get db data;
+    async function getData() {
+        return new Promise((resolve, reject) => {
+            db.query("SELECT id,cate,cate_py,pic,post_date,update_date from ??  " + (id ? " where id=? " : ""), id ? [table, id] : [table], (error, results, fields) => {
+                if (error) {
+                    return reject(error);
+                }
+                results = results.map(c => {
+                    c.post_date = moment(c.post_date).format("YYYY-MM-DD HH:mm:ss");
+                    c.update_date = moment(c.update_date).format("YYYY-MM-DD HH:mm:ss");
+                    return c;
+                })
+                resolve(results);
+            });
+        })
+    }
+
+    //get single cate from db data;
+    async function getDataLink(tar) {
+        let url = crawlerConfig.tmpl.replace("{{cate}}", encodeURIComponent(tar.cate));
+        console.time('getDataLink');
+        return new Promise((resolve, reject) => {
+            request.get({
+                url,
+                timeout: 1000 * 60 * 5,
+                //encoding: null,
+                headers: crawlerConfig.headers
+            }, (error, response, body) => {
+                if (error) {
+                    console.log('error:', error);
+                    return reject(error); //skip from error
+                }
+                console.timeEnd('getDataLink');
+
+                let $ = cheerio.load(body);
+                let box = $('.search-works-container').children('.search-works-item')
+                let pageLinkLens = box.length;
+                let rdx = Math.floor(Math.random() * pageLinkLens)
+                let pageLink = box.eq(rdx).find('a').attr('href');
+
+                tar.pageLink = pageLink;
+
+                resolve(tar);
+
+            });
+        });
+    }
+
+    let tbTarget = await getData();
 
     //获取图片所在页面地址
     async function getUrl(tar) {
+        console.time('getUrl');
         return new Promise((resolve, reject) => {
-            request({
-                uri: tar.pageLink,
-                method: 'GET',
-                gzip: true
+            request.get({
+                url: tar.pageLink,
+                timeout: 1000 * 60 * 5,
             }, (error, response, body) => {
                 if (error) {
                     return reject(error);
                 }
+                console.timeEnd('getUrl');
                 let $ = cheerio.load(body);
                 let imgSrc = $('#J_worksImg').attr('src');
                 tar.imgSrc = imgSrc;
@@ -127,15 +158,18 @@ router.get('/:table/:id', async(ctx, next) => {
     //获取图片
     async function getPic(tar) {
         return new Promise((resolve, reject) => {
-            let filename = crawlerConfig.dir + "//" + tar.cate_py + '.jpg';
+            let filename = path.join(crawlerConfig.dir, tar.cate_py + '.jpg');
+            console.time('getPic');
             request.get({
-                "url": tar.imgSrc,
+                url: tar.imgSrc,
+                timeout: 1000 * 60 * 5
             }).pipe(fs.createWriteStream(filename)).on('finish', () => {
-                console.log('finish');
+                console.timeEnd('getPic');
+                //console.log('finish');
                 tar.pic = tar.cate_py + '.jpg';
                 resolve(tar)
             }).on('error', (error) => {
-                console.log('error');
+                console.log(error);
                 reject(error)
             })
         })
@@ -144,16 +178,16 @@ router.get('/:table/:id', async(ctx, next) => {
     //更新pic字段
     async function updPic(tar) {
         return new Promise((resolve, reject) => {
-            db.queryAsync('UPDATE ?? SET pic = ?, update_date=? WHERE id = ?', [table, tar.pic, moment().format('YYYY-MM-DD HH:mm:ss'), tar.id]).then(res => {
-                if (res && res.affectedRows) {
-                    resolve(tar);
-                } else {
-                    reject(null);
+            let now = moment().format('YYYY-MM-DD HH:mm:ss');
+            db.query('UPDATE ?? SET pic = ?, update_date=? WHERE id = ?', [table, tar.pic, now, tar.id], (error, results, fields) => {
+                if (error) {
+                    return reject(error)
                 }
-            }).catch(err => {
-                console.log(err);
-                reject(err);
-            })
+                if (results && results.affectedRows) {
+                    tar.update_date = now;
+                }
+                resolve(tar);
+            });
         })
     }
 
@@ -164,35 +198,33 @@ router.get('/:table/:id', async(ctx, next) => {
             //console.log('tar', tar);
             //console.log('fixPic', pic);
 
-            gm(pic).resize(400, 400)
-                .noProfile()
-                //.autoOrient()
-                .write(path.join(crawlerConfig.dir, 'hehe-' + tar.pic), (err) => {
-                    if (err) {
-                        console.log(err);
-                        return reject(err)
-                    }
-                    console.log('gm done');
-                    resolve(tar);
-                })
+            // sharp(pic).resize(crawlerConfig.size.width, crawlerConfig.size.height)
+            //     .toFile(path.join(crawlerConfig.dir, 'hehe-' + tar.pic), (error,info) => {
+            //         if (error) {
+            //             console.log(error);
+            //             return reject(error)
+            //         }
+            //         console.log('gm done');
+            //         resolve(tar);
+            //     })
+
+            resolve(tar);
         })
     }
 
-    for (let i = 0; i < linkTarget.length; i++) {
-        console.log('a' + i);
-        let item = linkTarget[i];
-        let step1 = await getUrl(item);
+    for (let i = 0; i < tbTarget.length; i++) {
+        //console.log('a' + i);
+        let row = await getDataLink(tbTarget[i]);
+        let step1 = await getUrl(row);
         let step2 = await getPic(step1);
         let step3 = await updPic(step2);
         let step4 = await fixPic(step3);
-        state.page.data.push(step4);
-        //console.log('step4', step4);
-        console.log('b' + i);
+        pageData.data.push(step4);
+        //console.log('b' + i);
     }
 
-    ctx.state = Object.assign(ctx.state, state);
     ctx.type = 'application/json; charset=utf-8';
-    ctx.body = state;
+    ctx.body = pageData;
 
 })
 
