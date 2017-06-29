@@ -16,6 +16,7 @@
     "koa": "^2.1.0",
     "koa-bodyparser": "^2.4.0",
     "koa-convert": "^1.2.0",
+    "koa-favicon": "^2.0.0",
     "koa-json": "^2.0.2",
     "koa-onerror": "^3.1.0",
     "koa-router": "^7.1.0",
@@ -31,7 +32,6 @@
     "nunjucks": "^3.0.1",
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
-    "sharp": "^0.18.1",
     "sqlite3": "^3.1.8"
   },
   "devDependencies": {

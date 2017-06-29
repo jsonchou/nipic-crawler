@@ -1,10 +1,7 @@
 'use strict';
 
 const fs = require("fs");
-Promise.promisifyAll(fs);
-
-const request = Promise.promisify(require("request"), { multiArgs: true });
-Promise.promisifyAll(request, { multiArgs: true })
+const request = require("request");
 
 const path = require('path');
 const http = require("http");
@@ -15,14 +12,13 @@ const cheerio = require("cheerio");
 
 const moment = require('moment');
 const mysql = require('mysql');
-Promise.promisifyAll(mysql);
-Promise.promisifyAll(require("mysql/lib/Connection").prototype);
-Promise.promisifyAll(require("mysql/lib/Pool").prototype);
 
 const db = mysql.createConnection(config.db);
 
+const size = 3; //40 60 100
+
 const crawlerConfig = {
-    tmpl: `http://soso.nipic.com/?q={{cate}}&k=2&f=JPG&g=1&y=100&w=0&h=0&page=1`,
+    tmpl: `http://soso.nipic.com/?q={{cate}}&k=2&f=JPG&g=1&y=${size}&w=0&h=0&page=1`,
     dir: "D://Projects//www.jsoncdn.com//cdn//chi//cate",
     size: { width: 400, height: 400 },
     headers: {
@@ -122,7 +118,7 @@ router.get('/cut/:table', async(ctx, next) => {
                 let $ = cheerio.load(body);
                 let box = $('.search-works-container').children('.search-works-item')
                 let pageLinkLens = box.length;
-                let rdx = Math.floor(Math.random() * pageLinkLens)
+                let rdx = Math.floor(Math.random() * pageLinkLens - 1) //下一页占用一个box 
                 let pageLink = box.eq(rdx).find('a').attr('href');
 
                 tar.pageLink = pageLink;

@@ -11,6 +11,7 @@ const onerror = require('koa-onerror');
 
 const bodyparser = require('koa-bodyparser');
 const koaStatic = require("koa-static");
+const favicon = require('koa-favicon');
 
 const index = require('./routes/index');
 const api = require('./routes/api/index');
@@ -20,6 +21,8 @@ const checkrefer = require('./middlewares/checkrefer');
 // middlewares
 app.use(bodyparser());
 app.use(json());
+
+app.use(favicon(__dirname + "/favicon.ico"));
 
 app.use(koaStatic(__dirname + "/assets", { gzip: true }));
 app.use(koaStatic(__dirname + "/html"));
