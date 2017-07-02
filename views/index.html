@@ -42,7 +42,7 @@
                         <td v-html="index"></td>
                         <td v-html="item.cate"></td>
                         <td v-html="item.cate_py"></td>
-                        <td><img :src="'//{{g.cdn}}/cate/'+item.pic+'?='+Date.now()" class="img-circle"></td>
+                        <td><img :src="'//{{g.cdn}}/material/'+item.pic+'?='+Date.now()" class="img-circle"></td>
                         <td v-html="item.post_date"></td>
                         <td v-html="item.update_date"></td>
                         <td><button :data-id="item.id" type="button" @click="getPic" class="btn btn-success">获取图片</button></td>

@@ -18,8 +18,8 @@ const db = mysql.createConnection(config.db);
 const size = 3; //40 60 100
 
 const crawlerConfig = {
-    tmpl: `http://soso.nipic.com/?q={{cate}}&k=2&f=JPG&g=1&y=${size}&w=0&h=0&page=1`,
-    dir: "D://Projects//www.jsoncdn.com//cdn//chi//cate",
+    tmpl: `http://soso.nipic.com/?q={{keyword}}&k=2&f=JPG&g=1&y=${size}&w=0&h=0&page=1`,
+    dir: "D://Projects//www.jsoncdn.com//cdn//chi//material",
     size: { width: 400, height: 400 },
     headers: {
         "Referer": "http://www.nipic.com/index.html",
@@ -84,7 +84,7 @@ router.get('/cut/:table', async(ctx, next) => {
     //get db data;
     async function getData() {
         return new Promise((resolve, reject) => {
-            db.query("SELECT id,cate,cate_py,pic,post_date,update_date from ??  " + (id ? " where id=? " : ""), id ? [table, id] : [table], (error, results, fields) => {
+            db.query("SELECT * from ??  " + (id ? " where id=? " : ""), id ? [table, id] : [table], (error, results, fields) => {
                 if (error) {
                     return reject(error);
                 }
@@ -100,7 +100,7 @@ router.get('/cut/:table', async(ctx, next) => {
 
     //get single cate from db data;
     async function getDataLink(tar) {
-        let url = crawlerConfig.tmpl.replace("{{cate}}", encodeURIComponent(tar.cate));
+        let url = crawlerConfig.tmpl.replace("{{keyword}}", encodeURIComponent(tar.cate));
         console.time('getDataLink');
         return new Promise((resolve, reject) => {
             request.get({
@@ -118,7 +118,12 @@ router.get('/cut/:table', async(ctx, next) => {
                 let $ = cheerio.load(body);
                 let box = $('.search-works-container').children('.search-works-item')
                 let pageLinkLens = box.length;
-                let rdx = Math.floor(Math.random() * pageLinkLens - 1) //下一页占用一个box 
+                let rdx;
+                if (pageLinkLens.length >= size) {
+                    rdx = Math.floor(Math.random() * pageLinkLens - 1) //下一页占用一个box 
+                } else {
+                    rdx = Math.floor(Math.random() * pageLinkLens)
+                }
                 let pageLink = box.eq(rdx).find('a').attr('href');
 
                 tar.pageLink = pageLink;
@@ -151,23 +156,48 @@ router.get('/cut/:table', async(ctx, next) => {
         })
     }
 
-    //获取图片
+     //获取图片  use system api
     async function getPic(tar) {
         return new Promise((resolve, reject) => {
             let filename = path.join(crawlerConfig.dir, tar.cate_py + '.jpg');
-            console.time('getPic');
-            request.get({
-                url: tar.imgSrc,
-                timeout: 1000 * 60 * 5
-            }).pipe(fs.createWriteStream(filename)).on('finish', () => {
-                console.timeEnd('getPic');
-                //console.log('finish');
-                tar.pic = tar.cate_py + '.jpg';
-                resolve(tar)
-            }).on('error', (error) => {
+            let file = fs.createWriteStream(filename);
+            var sendReq = request.get(tar.imgSrc);
+
+            // verify response code
+            sendReq.on('response', function(response) {
+                if (response.statusCode !== 200) {
+                    console.log(response);
+                    return reject(response)
+                }
+            });
+
+            // check for request errors
+            sendReq.on('error', function(error) {
+                fs.unlink(filename);
                 console.log(error);
-                reject(error)
-            })
+                return reject(error)
+            });
+
+            sendReq.pipe(file);
+
+            file.on('finish', function() {
+                file.close(()=>{
+
+                }); // close() is async, call cb after close completes.
+                tar.pic_url = tar.cate_py + '.jpg';
+                resolve(tar);
+            });
+
+            file.on('error', function(error) { // Handle errors
+                try {
+                    fs.unlink(filename); // Delete the file async. (But we don't check the result)
+                } catch (cerr) {
+                    throw new cerr;
+                }
+
+                console.log(error);
+                return reject(error)
+            });
         })
     }
 
@@ -211,11 +241,17 @@ router.get('/cut/:table', async(ctx, next) => {
     for (let i = 0; i < tbTarget.length; i++) {
         //console.log('a' + i);
         let row = await getDataLink(tbTarget[i]);
-        let step1 = await getUrl(row);
-        let step2 = await getPic(step1);
-        let step3 = await updPic(step2);
-        let step4 = await fixPic(step3);
-        pageData.data.push(step4);
+        if (row.pageLink) {
+            let step1 = await getUrl(row);
+            try {
+                let step2 = await getPic(step1);
+                let step3 = await updPic(step2);
+                let step4 = await fixPic(step3);
+                pageData.data.push(step4);
+            } catch (error) {
+                throw new error;
+            }
+        }
         //console.log('b' + i);
     }
 
