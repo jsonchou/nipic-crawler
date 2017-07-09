@@ -13,7 +13,7 @@ const db = {
     user: 'root',
     connectionLimit: 2,
     password: 'amwewihcv',
-    database: 'test'
+    database: 'chibaiwei'
 }
 
 let development = {
