@@ -1,23 +1,22 @@
 'use strict';
 
 const fs = require("fs");
-const request = require("request");
-
 const path = require('path');
 const http = require("http");
 
+const request = require("request");
 const cheerio = require("cheerio");
 
-//const sharp = require("sharp");
+let router = require('koa-router')();
 
 const moment = require('moment');
 const mysql = require('mysql');
-
 const db = mysql.createConnection(config.db);
 
 const size = 40; //40 60 100
 
 const crawlerConfig = {
+    table: 'material',
     tmpl: `http://soso.nipic.com/?q={{keyword}}&k=2&f=JPG&g=1&y=${size}&w=0&h=0&page=1`,
     dir: "D://Projects//www.jsoncdn.com//cdn//chi//material",
     size: { width: 400, height: 400 },
@@ -33,16 +32,10 @@ const crawlerConfig = {
     }
 }
 
-let limit = "limit 230,30";
-
-const router = require('koa-router')();
-
 //ajax api
-router.get('/:table', async(ctx, next) => {
+router.get('/', async(ctx, next) => {
 
-    let table = ctx.params.table;
-
-    console.log(table);
+    let table = crawlerConfig.table;
 
     let pageData = {
         code: 200,
@@ -52,7 +45,7 @@ router.get('/:table', async(ctx, next) => {
 
     async function getAllTable() {
         return new Promise((resolve, reject) => {
-            db.query("SELECT * from ?? where pic_url is null order by id desc " + limit, [table], (error, results, fields) => {
+            db.query("SELECT * from ?? where pic_url is null order by id desc ", [table], (error, results, fields) => {
                 if (error) {
                     return reject(error);
                 }
@@ -74,10 +67,11 @@ router.get('/:table', async(ctx, next) => {
 })
 
 //ajax cut api
-router.get('/cut/:table', async(ctx, next) => {
+router.get('/cut', async(ctx, next) => {
 
-    let table = ctx.params.table;
+    let table = crawlerConfig.table;
     let id = ctx.query.id;
+    let ids = ctx.query.ids;
 
     let pageData = {
         code: 200,
@@ -88,7 +82,7 @@ router.get('/cut/:table', async(ctx, next) => {
     //get db data;
     async function getData() {
         return new Promise((resolve, reject) => {
-            db.query("SELECT * from ??  " + (id ? " where id=? " : "") + " order by id desc " + (id ? '' : limit), id ? [table, id] : [table], (error, results, fields) => {
+            db.query("SELECT * from ??  where id " + (id ? " = ? " : " in (?) ") + " order by id desc ", id ? [table, id] : [table, ids.split(',')], (error, results, fields) => {
                 if (error) {
                     return reject(error);
                 }
@@ -104,7 +98,7 @@ router.get('/cut/:table', async(ctx, next) => {
 
     //get single cate from db data;
     async function getDataLink(tar) {
-        let url = crawlerConfig.tmpl.replace("{{keyword}}", encodeURIComponent(tar.cate));
+        let url = crawlerConfig.tmpl.replace("{{keyword}}", encodeURIComponent(tar.name));
         console.time('getDataLink');
         return new Promise((resolve, reject) => {
             request.get({
@@ -128,12 +122,9 @@ router.get('/cut/:table', async(ctx, next) => {
                 } else {
                     rdx = Math.floor(Math.random() * pageLinkLens)
                 }
-                
                 let pageLink = box.eq(rdx).find('a').attr('href');
 
                 tar.pageLink = pageLink;
-
-                console.log(box.length);
 
                 resolve(tar);
 
@@ -143,14 +134,12 @@ router.get('/cut/:table', async(ctx, next) => {
 
     let tbTarget = await getData();
 
-    
-
     //获取图片所在页面地址
     async function getUrl(tar) {
         console.time('getUrl');
         return new Promise((resolve, reject) => {
             request.get({
-                url: tar.pageLink,
+                uri: tar.pageLink,
                 timeout: 1000 * 60 * 5,
             }, (error, response, body) => {
                 if (error) {
@@ -214,7 +203,7 @@ router.get('/cut/:table', async(ctx, next) => {
     async function updPic(tar) {
         return new Promise((resolve, reject) => {
             let now = moment().format('YYYY-MM-DD HH:mm:ss');
-            db.query('UPDATE ?? SET pic_url = ?, update_date=? WHERE id = ?', [table, tar.pic, now, tar.id], (error, results, fields) => {
+            db.query('UPDATE ?? SET pic_url = ?, update_date=? WHERE id = ?', [table, tar.pic_url, now, tar.id], (error, results, fields) => {
                 if (error) {
                     return reject(error)
                 }
@@ -229,12 +218,12 @@ router.get('/cut/:table', async(ctx, next) => {
     //处理图片尺寸（压缩、裁剪）
     async function fixPic(tar) {
         return new Promise((resolve, reject) => {
-            let pic = path.join(crawlerConfig.dir, tar.pic);
+            let pic = path.join(crawlerConfig.dir, tar.pic_url);
             //console.log('tar', tar);
             //console.log('fixPic', pic);
 
             // sharp(pic).resize(crawlerConfig.size.width, crawlerConfig.size.height)
-            //     .toFile(path.join(crawlerConfig.dir, 'hehe-' + tar.pic), (error,info) => {
+            //     .toFile(path.join(crawlerConfig.dir, 'hehe-' + tar.pic_url), (error,info) => {
             //         if (error) {
             //             console.log(error);
             //             return reject(error)
