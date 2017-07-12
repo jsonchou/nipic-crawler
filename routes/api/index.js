@@ -98,7 +98,9 @@ router.get('/cut', async(ctx, next) => {
 
     //get single cate from db data;
     async function getDataLink(tar) {
-        let url = crawlerConfig.tmpl.replace("{{keyword}}", encodeURIComponent(tar.name));
+        let name_other = tar.name_other ? tar.name_other.split('、')[3] : '';
+        name_other = name_other.split('|')[0] || '';
+        let url = crawlerConfig.tmpl.replace("{{keyword}}", encodeURIComponent(name_other || tar.name));
         console.time('getDataLink');
         return new Promise((resolve, reject) => {
             request.get({
