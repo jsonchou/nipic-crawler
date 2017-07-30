@@ -42,7 +42,7 @@
                 <tbody>
                     <tr v-for="(item,index) in cateList">
                         <td v-html="index"></td>
-                        <td v-html="item.id"></td>
+                        <td :data-id="item.id" v-html="item.id"></td>
                         <td v-html="item.name"></td>
                         <td v-html="item.name_other"></td>
                         <td v-html="item.name_py"></td>
@@ -105,10 +105,17 @@
                 },
                 getPicAll(e) {
                     let me = this;
+                    let ids = [];
+                    $('td[data-id]').each(function() {
+                        ids.push($(this).attr('data-id'));
+                    })
                     $.ajax({
                         timeout: 0,
                         type: 'GET',
                         dataType: 'json',
+                        data: {
+                            ids: ids.join(',')
+                        },
                         url: '/api/cut'
                     }).done(res => {
                         if (res) {
